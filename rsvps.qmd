@@ -7,8 +7,6 @@ format:
           \usepackage{amssymb}
 ---
 
- 
-
 ```{r}
 #| include: false
 
@@ -66,12 +64,10 @@ update <- function(shape, y, n, N=100, plot = TRUE){
 }
 ```
 
- 
 \newcommand{\h}{$\scriptstyle \heartsuit\ $}
 \textbf{RSVPs} \textit{or how I learned how many people will attend your wedding}
 \vspace{1em}
  
-
 \h Let $\theta$ be the true proportion of people that will attend your wedding out of $N$ total invitations that you send.
 
 \h Let $y$ be the yes's out of $n$ RSVPs you have received to date.
@@ -153,4 +149,3 @@ cat("$$ \\text{E}(\\theta|y) = ",bmean,
     ".\\ \\text{var}(\\theta|y) = ",bvar,
     ".\\ 95\\%\\ \\text{confidence interval:}\\ [",paste0(bci, collapse=",\\ "),"] .$$")
 ```
-
