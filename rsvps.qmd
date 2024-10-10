@@ -96,7 +96,7 @@ $$
 \frac{\text{E}(\theta|y)[1 - \text{E}(\theta|y)]}{\alpha + \beta + n + 1}.
 $$
 
-\h The prior density is equivalent to having received $\alpha$ previous yes's and $\beta$ previous no's. As $y$ and $n-y$ grow large compared to $\alpha$ and $\beta$, the posterior mean approaches the sample mean and the posterior variance goes to 0 at rate $\frac{1}{n}$.
+\h The prior density is equivalent to having received $\alpha - 1$ previous yes's and $\beta - 1$ previous no's. As $y$ and $n-y$ grow large compared to $\alpha$ and $\beta$, the posterior mean approaches the sample mean and the posterior variance goes to 0 at rate $\frac{1}{n}$.
 
 \h After each response we can update the prior with the previous posterior.
 
