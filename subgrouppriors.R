@@ -1,9 +1,10 @@
 set.seed(7)
-n <- 1000
+nrs <- 1000
 priors <- c(.3,.6,.65,.85,.95)
-alphas <- 20 * priors
-betas <- 20 - alphas
-thetas <- mapply(rbeta, alphas, betas, MoreArgs = list(n=n))
+n <- 20
+alphas <- n * priors
+betas <- n - alphas
+thetas <- mapply(rbeta, alphas, betas, MoreArgs = list(n=nrs))
 thetao <- as.vector(thetas)
 ci <- apply(thetas, 2, function(x) quantile(x, probs = c(0.025, 0.50, 0.975)))
 cio <- quantile(thetao, probs = c(0.025, 0.50, 0.975))
