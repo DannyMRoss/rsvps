@@ -1,0 +1,156 @@
+---
+title: " "
+format:
+  pdf:
+    include-in-header:
+      - text: |
+          \usepackage{amssymb}
+---
+
+ 
+
+```{r}
+#| include: false
+
+library(data.table)
+set.seed(7)
+ftwo <- function(x) format(x, digits=2, nsmall=2)
+ci <- function(a,b,l=0.025,u=0.975) qbeta(c(l, u), a, b)
+betamean <- function(a,b) a / (a + b)
+betavar <- function(a,b,n){
+  m <- betamean(a,b)
+  return((m * (1-m)) / (a + b + n + 1))
+}
+
+bp <- function(x, y, n, alpha, beta, prior, posterior, likelihood, confint, confintp, confintl){
+    priorc <- rgb(177, 18, 37, alpha=75, maxColorValue = 255)
+    posteriorc <- rgb(81, 40, 136, alpha=150, maxColorValue = 255)
+    likelihoodc <- rgb(6, 42, 199, alpha=75, maxColorValue = 255)
+    
+    priormean <- ftwo(betamean(alpha, beta))
+    likelihoodmean <- ftwo(betamean(y + 1, n - y + 1))
+    posteriormean <- ftwo(betamean(alpha + y, beta + n - y))
+    
+    ym <- max(c(prior, posterior,likelihood))
+    
+    plot(x, 
+         type='n',
+         ylab='', xlab='', yaxt='n', yaxs='i', xaxt='n',xaxs='i',
+         ylim=c(0,1.2*ym), xlim=c(0,1))
+    polygon(x=x, y=prior, col=priorc)
+    polygon(c(x, rev(x)), c(likelihood, rep(0, length(likelihood))), col=likelihoodc)
+    polygon(x=x, y=posterior, col=posteriorc)
+    legend(x="topleft",
+           legend = c(paste0("Prior (", priormean, ")"),
+                      paste0("Likelihood (", likelihoodmean, ")"),
+                      paste0("Posterior (", posteriormean, ")")),
+           fill = c(priorc, likelihoodc, posteriorc),
+           bty = "n",
+           cex = 1,
+           x.intersp = 0.2,
+           pt.cex = 0.8,
+           xjust = 0, yjust=1,
+           inset=0)
+}
+
+
+update <- function(shape, y, n, N=100, plot = TRUE){
+  x <- seq(0,1,length.out=N)
+  alpha <- shape[1]
+  beta <- shape[2]
+  prior <- dbeta(x, alpha, beta)
+  likelihood <- dbeta(x, y + 1, n - y + 1)
+  posterior <- dbeta(x, alpha + y, beta + n - y)
+  if(plot) bp(x, y, n, alpha, beta, prior, posterior, likelihood)
+  return(c(alpha + y, beta + n - y))
+}
+```
+
+ 
+\newcommand{\h}{$\scriptstyle \heartsuit\ $}
+\textbf{RSVPs} \textit{or how I learned how many people will attend your wedding}
+\vspace{1em}
+ 
+
+\h Let $\theta$ be the true proportion of people that will attend your wedding out of $N$ total invitations that you send.
+
+\h Let $y$ be the yes's out of $n$ RSVPs you have received to date.
+
+\h We want to know the posterior density of $\theta$ given the data $y$.
+ 
+\h Given $\theta$, the likelihood of getting $y$ yes's and $n - y$ no's is $$p(y|\theta) \propto \theta^y(1-\theta)^{n - y}.$$
+
+\h A conjugate prior for $\theta$ is $$p(\theta) \propto \theta^{\alpha-1}(1-\theta)^{\beta-1},\ \text{where}\ \theta \sim \text{Beta}(\alpha, \beta).$$
+
+\h Using Bayes' rule, the posterior density for $\theta$ is
+
+$$
+\begin{array}{lcl}
+p(\theta|y) & \propto & p(y|\theta)p(\theta) \\
+& = & \theta^{y+\alpha-1}(1-\theta)^{n-y+\beta-1} \\
+& = & \text{Beta}(\alpha+y, \beta+n-y).
+\end{array}
+$$
+
+\h The posterior mean of $\theta$ is an average of the prior mean ($\frac{\alpha}{\alpha + \beta}$) and the sample mean ($\frac{y}{n}$): $$\text{E}(\theta|y) = \frac{\alpha + y}{\alpha + \beta + n}.$$
+
+\h The posterior variance of $\theta$ is 
+$$
+\text{var}(\theta|y) = \frac{(\alpha + y)(\beta + n - y)}{(\alpha + \beta +b)^2(\alpha + \beta + n +1)} = 
+\frac{\text{E}(\theta|y)[1 - \text{E}(\theta|y)]}{\alpha + \beta + n + 1}.
+$$
+
+\h The prior density is equivalent to having received $\alpha$ previous yes's and $\beta$ previous no's. As $y$ and $n-y$ grow large compared to $\alpha$ and $\beta$, the posterior mean approaches the sample mean and the posterior variance goes to 0 at rate $\frac{1}{n}$.
+
+\h After each response we can update the prior with the previous posterior.
+
+\h Below is an example of how the posterior will update as you receive responses.
+
+\newpage
+\h Suppose you believe that $\theta = 0.7$, but you want your prior to be relatively weak compared to the data, such that the mean of the posterior after receiving all of the RSVPs will be close to $\frac{y}{N}$. (Maybe your prior can account for people that respond yes but do not attend the wedding, or forget to respond but still attend). For example, if $N = 100$, let $\theta \sim \text{Beta}(\alpha = 14,\ \beta = 6)$ such that the prior is the same weight as 20 invitiations and $\text{E}(\theta) = 0.7$. 
+
+\h If you receive responses in groups of 10, where each row of $y$ is the number of yes's out of the 10 responses, here is how your posterior will update:
+```{r}
+#| echo: false
+#| results: asis
+
+N <- 100
+n <- 10
+alpha0 <- 14
+beta0 <- 6
+dt <- data.table(N = rep(n,n), theta = seq(1,.4,length.out=10))
+y <- sample(dt[,rbinom(N, N, theta)])
+yb <- ftwo(sum(y)/dt[,sum(N)])
+cat("$$ y_i = [",paste0(y, collapse=",\\ "),"].\\ \\frac{y}{N} = ", yb, ". $$")
+```
+
+```{r}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 6
+
+par(mar = rep(0.5,4))
+par(mfrow = c(5,2))
+shape <- c(alpha0, beta0)
+posteriormeani <- sapply(y, function(j){
+  posteriormean <- ftwo(betamean(shape[1] + j, shape[2] + n - j))
+  shape <<- update(shape, y = j, n = n)
+  return(posteriormean)
+})
+a <- alpha0 + sum(y)
+b <- beta0 + N - sum(y)
+bmean <- ftwo(betamean(a, b))
+bvar <- ftwo(betavar(a, b, N))
+bci <- ftwo(ci(a, b))
+```
+
+```{r}
+#| echo: false
+#| results: asis
+
+cat("$$ \\text{E}(\\theta|y_i) = [",paste0(posteriormeani, collapse=",\\ "),"].$$")
+cat("$$ \\text{E}(\\theta|y) = ",bmean,
+    ".\\ \\text{var}(\\theta|y) = ",bvar,
+    ".\\ 95\\%\\ \\text{confidence interval:}\\ [",paste0(bci, collapse=",\\ "),"] .$$")
+```
+
