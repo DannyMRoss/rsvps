@@ -20,7 +20,7 @@ betavar <- function(a,b,n){
   return((m * (1-m)) / (a + b + n + 1))
 }
 
-bp <- function(x, y, n, alpha, beta, prior, posterior, likelihood, confint, confintp, confintl){
+bp <- function(x, y, n, alpha, beta, prior, posterior, likelihood){
     priorc <- rgb(177, 18, 37, alpha=75, maxColorValue = 255)
     posteriorc <- rgb(81, 40, 136, alpha=150, maxColorValue = 255)
     likelihoodc <- rgb(6, 42, 199, alpha=75, maxColorValue = 255)
