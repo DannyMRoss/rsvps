@@ -4,7 +4,7 @@ priors <- c(.3,.6,.65,.85,.95)
 n <- 20
 alphas <- n * priors
 betas <- n - alphas
-thetas <- mapply(rbeta, alphas, betas, MoreArgs = list(n=nrs))
+thetas <- mapply(rbeta, n=n, shape1=alphas, shape2=betas)
 thetao <- as.vector(thetas)
 ci <- apply(thetas, 2, function(x) quantile(x, probs = c(0.025, 0.50, 0.975)))
 cio <- quantile(thetao, probs = c(0.025, 0.50, 0.975))
