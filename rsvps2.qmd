@@ -51,9 +51,9 @@ sp <- function(prior, data=NULL, posterior=NULL){
       dprior <- dbeta(x, prior['alpha',i], prior['beta',i])
       ym <- 1.5*max(c(dprior, dposterior, dlikelihood))
       dii <- paste0(di, ",", i)
-      if(is.null(posterior)) main <- bquote(theta[.(i)])
+      if(is.null(posterior)) main <- bquote(n[.(i)] * " = 20")
       plot(x, 
-           type='n',main=main,
+           type='n',main=main,font.main=1,
            ylab='', xlab='', yaxt='n', yaxs='i', xaxt='n',xaxs='i',
            ylim=c(0,ym), xlim=c(0,1))
       polygon(x=x, y=dprior, col=priorc)
@@ -102,20 +102,21 @@ getposterior <- function(prior, data){
 }
 
 overall <- function(prior, x = seq(0,1,length.out=1000), rsn=1000){
-  priors <- sapply(1:ncol(prior), function(i) dbeta(x, shape1 = prior['alpha',i], shape2 = prior['beta',i]))
   thetas <- mapply(rbeta, n=rsn, shape1=prior['alpha',], shape2=prior['beta',])
-  thetao <- as.vector(thetas)
-  return(thetao)
+  mthetas <- apply(thetas, 1, mean)
+  return(mthetas)
 }
 
 oplot <- function(thetao, data=T){
    m <- ftwo(mean(thetao))
    cio <- quantile(thetao, probs = c(0.025, 0.50, 0.975))
-   main <- ifelse(data,"",bquote(theta))
+   main <- "" 
+   if(!data) main <- bquote("N = 100")
    oc <- rgb(86, 35, 127, alpha=200, maxColorValue = 255)
-   plot(x=seq(0,1,length.out=100),main=main,
+   dens <- density(thetao)
+   plot(x=seq(0,1,length.out=100),main=main,font.main=1,
         type='n',ylab='', xlab='', yaxt='n', yaxs='i', xaxt='n',xaxs='i',
-        xlim=c(0,1), ylim=c(0,max(density(thetao)$y) * 2))
+        xlim=c(0,1), ylim=c(0,max(dens$y) * 1.2))
    hist(thetao, 
         add = TRUE,
         breaks=seq(0,1,length.out=100),
@@ -124,6 +125,7 @@ oplot <- function(thetao, data=T){
         freq = FALSE,
         ylab='', xlab='', yaxt='n', yaxs='i', xaxt='n',xaxs='i',
         xlim=c(0,1))
+   lines(dens, col='black')
   oci <- sprintf("[%.2f, %.2f, %.2f]", cio[1], cio[2], cio[3])
   
   if (data){
@@ -131,15 +133,17 @@ oplot <- function(thetao, data=T){
   }else{
     leg <- bquote("E(" * theta * ") = " * .(m) * ".")
   }
-  legend("topleft", legend = c(leg,
-                               bquote("[0.25%, 50%, 97.5%]:"),
-                               bquote(.(oci) * ".")),
+  legend("topleft", legend = c(leg),
+                               #bquote("[0.25%, 50%, 97.5%]:"),
+                               #bquote(.(oci) * ".")),
          fill = c(oc,NA,NA),border = c('black', NA, NA),
          bty = "n",
          cex = c(1,.8,.8),
          x.intersp = 0.2,
          pt.cex = 0.8,
          xjust = 0, yjust=1,inset=0)
+  text(x=0, y=0.5, pos= c(4,3),
+       labels = bquote(.(oci) * "."), cex = .8)
 }
 ```
 
@@ -186,12 +190,12 @@ $$
 
 priorsi <- subpriors()
 theta <- mapply(betamean, a = priorsi['alpha',]+1, b = priorsi['beta',]-1)
-data <- mapply(rbinom, n=100, size=1, prob=theta)
+data <- mapply(rbinom, n=20, size=1, prob=theta)
 prior <- priorsi
 
-dp <- t(sapply(seq(0,81,20), function(i){
-  d <- data[i:(i+19),]
-  sprintf("%.2f",apply(d, 2, sum) / nrow(d))
+dp <- t(sapply(seq(1,17,4), function(i){
+  d <- data[i:(i+3),]
+  apply(d, 2, sum)
 }))
 ```
 
@@ -204,25 +208,29 @@ dp <- t(sapply(seq(0,81,20), function(i){
 #| echo: false
 #| results: asis
 
-cat("$$\\begin{array}{c|ccccc}")
-cat("& ",paste0(paste0("\\theta_",1:5), collapse=" & "),"\\\\ \\hline")
+b <- function(){
+cat("$$\\begin{array}{r|ccccc}")
+cat("p(\\theta) = p(\\theta_1,\\theta_2,\\theta_3,\\theta_4,\\theta_5) & ",paste0(paste0("\\theta_",1:5), collapse=" & "),"\\\\ \\hline")
 cat(paste0(c("\\alpha & ","\\beta & "),apply(priorsi, 1, function(row) paste0(row, collapse=" & ")), collapse = "\\\\ "))
-cat("\\end{array}.$$")
+cat("\\end{array}$$")
+}
+b()
 ```
+
 
 \h Each subgroup represents expected responses from $n = \alpha + \beta - 2 = 20$ people.
 
 \h The joint distributions can be computed by taking 1000 samples from each of the subgroup prior distributions.
 
-\h How will the posterior distributions update if you receive the following data? Each column represents responses associated with a given subgroup. Each row represents 20 responses to invitations received over time.
+\h How will the posterior distributions update if you receive the following data? Each column represents responses associated with a given subgroup. Each row is the number of yes's out of 4 invitations received over time.
+\newpage
 ```{r}
 #| echo: false
 #| results: asis
 
-cat("$$y = \\left[\\begin{array}{ccccc}")
-cat(paste0(apply(dp, 1, function(row) paste0(row, collapse=" & ")), collapse = "\\\\"))
-cat("\\end{array}\\right].$$")
+b()
 ```
+
 
 ```{r}
 #| echo: false
@@ -237,8 +245,8 @@ sp(prior)
 oplot(overall(prior), data=F)
 par(mar = rep(0.25,4))
 di <<- di + 1
-for (i in seq(0,80,20)){
-  d <- data[i:(i+20),]
+for (i in seq(1,17,4)){
+  d <- data[i:(i+3),]
   posterior <- getposterior(prior, d)
   sp(prior, d, posterior)
   prior <- posterior
@@ -246,5 +254,13 @@ for (i in seq(0,80,20)){
   oplot(thetao)
   di <<- di + 1
 }
+```
+
+```{r}
+#| echo: false
+#| results: asis
+cat("$$\\tiny y = \\left[\\begin{array}{ccccc}")
+cat(paste0(apply(dp, 1, function(row) paste0(row, collapse=" & ")), collapse = "\\\\"))
+cat("\\end{array}\\right]$$")
 ```
 
